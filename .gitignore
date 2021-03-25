@@ -1,0 +1,11 @@
+envr/
+data/
+apex/
+.vscode/
+__MACOSX/
+__pycache__/
+flex_envr/
+lightning_logs/
+old_envr/
+test_ner/
+runs/
