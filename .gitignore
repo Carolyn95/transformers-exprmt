@@ -9,3 +9,4 @@ lightning_logs/
 old_envr/
 test_ner/
 runs/
+glove_emb/
