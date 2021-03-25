@@ -93,7 +93,7 @@ def getDataset(data_dir, tokenizer, train_or_test='train', is_shuffle=True):
 model_checkpoint = "bert-base-uncased"
 model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-data_dir = './data/atfm-data/'
+data_dir = './data/sats-data/'
 train_datasets = getDataset(data_dir=data_dir,
                             tokenizer=tokenizer,
                             train_or_test='train',
@@ -142,7 +142,7 @@ class IntentClassifier(nn.Module):
     return {"loss": loss, "logits": logits}
 
 
-model = IntentClassifier(model_checkpoint, n_classes, [0, -1])
+model = IntentClassifier(model_checkpoint, n_classes, [-2])
 
 datasets = {}
 datasets['train'] = train_datasets
