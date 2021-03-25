@@ -93,7 +93,7 @@ def getDataset(data_dir, tokenizer, train_or_test='train', is_shuffle=True):
 model_checkpoint = "bert-base-uncased"
 model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-data_dir = './data/atfm-data/'
+data_dir = './data/sats-data/'
 train_datasets = getDataset(data_dir=data_dir,
                             tokenizer=tokenizer,
                             train_or_test='train',
@@ -130,10 +130,10 @@ class IntentClassifier(nn.Module):
         torch.cat([outputs.hidden_states[hl] for hl in self.hidden_layers], 1),
         1)
     output = self.relu_act(self.hid1(pooled_output))
-    output = self.tanh_act(self.hid2(output))
-    output = self.tanh_act(self.hid2(output))
-    output = self.tanh_act(self.hid2(output))
-    output = self.tanh_act(self.hid2(output))
+    # output = self.tanh_act(self.hid2(output))
+    # output = self.tanh_act(self.hid2(output))
+    # output = self.tanh_act(self.hid2(output))
+    # output = self.tanh_act(self.hid2(output))
     output = self.drop(output)
     logits = self.softmax_act(self.out(output))
     loss_fct = nn.CrossEntropyLoss()
