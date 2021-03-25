@@ -142,7 +142,7 @@ class IntentClassifier(nn.Module):
     return {"loss": loss, "logits": logits}
 
 
-model = IntentClassifier(model_checkpoint, n_classes, [-1])
+model = IntentClassifier(model_checkpoint, n_classes, [0])
 
 datasets = {}
 datasets['train'] = train_datasets
