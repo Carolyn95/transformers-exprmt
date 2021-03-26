@@ -81,7 +81,6 @@ for i, word in enumerate(target_vocab):
 def create_emb_layer(weights_matrix, non_trainable=False):
   num_embeddings, embedding_dim = weights_matrix.shape
   emb_layer = nn.Embedding(num_embeddings, embedding_dim)
-  # pdb.set_trace()
   emb_layer.load_state_dict({'weight': torch.from_numpy(weights_matrix)})
   if non_trainable:
     emb_layer.weight.requires_grad = False
@@ -91,30 +90,23 @@ def create_emb_layer(weights_matrix, non_trainable=False):
 
 class ToyNN(nn.Module):
 
-  def __init__(self, weights_matrix, hidden_size, num_layers):
+  def __init__(self, weights_matrix, n_classes):
     super(ToyNN, self).__init__()
     self.embedding, num_embeddings, embedding_dim = create_emb_layer(
         weights_matrix, True)
-    # self.n_classes = n_classes
-    self.hidden_size = hidden_size
-    self.num_layers = num_layers
-    self.gru = nn.GRU(embedding_dim, hidden_size, num_layers, batch_first=True)
-    # self.hid1 = nn.Linear(768, 256)
-    # self.hid2 = nn.Linear(256, 256)
-    # self.out = nn.Linear(256, self.n_classes)
-    # self.relu_act = nn.ReLU()
-    # self.tanh_act = nn.Tanh()
-    # self.softmax_act = nn.Softmax(dim=1)
-    # self.drop = nn.Dropout(p=0.3)
+    self.n_classes = n_classes
+    self.hid = nn.Linear(embedding_dim, n_classes)
+    self.softmax_act = nn.Softmax(dim=1)
 
-  def forward(self, inp, hidden):
-    return self.gru(self.embedding(inp), hidden)
+  def forward(self, text):
+    pdb.set_trace()
+    output = self.embedding(text)
 
-  def init_hidden(self, batch_size):
-    return Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size))
-
-
-model = ToyNN(weights_matrix, 256, 6)
+    logits = self.softmax_act(self.hid(output))
+    # loss_fct = nn.CrossEntropyLoss()
+    # loss = loss_fct(logits.view(-1, self.n_classes), labels.view(-1))
+    # return {"loss": loss, "logits": logits}
+    return logits
 
 
 class ScoopData(Dataset):
@@ -145,12 +137,12 @@ class ScoopData(Dataset):
 
     self.all_labels = np.unique(labels, axis=0)
     self.datasets = []
-    for sent_text in sents:
+    for sent_text, label in zip(sents, labels):
       # inputs = self.tokenizer(sent_text, add_special_tokens=True)
-      # pdb.set_trace()
       # inputs['labels'] = torch.tensor(labels[idx],
       #                                 dtype=torch.long).unsqueeze(0)
-      self.datasets.append(sent_text)
+      temp = {"text": sent_text, "label": label}
+      self.datasets.append(temp)
 
 
 def getDataset(data_dir, train_or_test='train', is_shuffle=True):
@@ -173,6 +165,7 @@ dev_datasets = getDataset(data_dir=data_dir,
                           is_shuffle=True)
 label_list = train_datasets.all_labels
 n_classes = len(label_list)
+model = ToyNN(weights_matrix, n_classes)
 
 datasets = {}
 datasets['train'] = train_datasets
@@ -184,13 +177,13 @@ is_grad = 'grad_'
 def compute_metrics(pred):
   labels = pred.label_ids
   preds = [x.argmax(-1) for x in pred.predictions]
-  # pdb.set_trace()
   acc = accuracy_score(labels, preds)
   return {
       'accuracy': acc,
   }
 
 
+"""
 batch_size = 32
 exprmt_ds = data_dir.split('/')[-2].split('-')[0]
 traning_samples = len(train_datasets)
@@ -221,3 +214,70 @@ predictions, labels, _ = trainer.predict(datasets['test'])
 predictions = np.argmax(predictions, axis=1)
 results = accuracy_score(labels, predictions)
 print(results)
+"""
+
+import time
+
+
+def train(dataloader):
+  model.train()
+  total_acc, total_count = 0, 0
+  log_interval = 500
+  start_time = time.time()
+
+  for idx, (text, label) in enumerate(dataloader):
+    optimizer.zero_grad()
+    predited_label = model(text)
+    loss = criterion(predited_label, label)
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+    optimizer.step()
+    total_acc += (predited_label.argmax(1) == label).sum().item()
+    total_count += label.size(0)
+    if idx % log_interval == 0 and idx > 0:
+      elapsed = time.time() - start_time
+      print('| epoch {:3d} | {:5d}/{:5d} batches '
+            '| accuracy {:8.3f}'.format(epoch, idx, len(dataloader),
+                                        total_acc / total_count))
+      total_acc, total_count = 0, 0
+      start_time = time.time()
+
+
+def evaluate(dataloader):
+  model.eval()
+  total_acc, total_count = 0, 0
+
+  with torch.no_grad():
+    for idx, (label, text, offsets) in enumerate(dataloader):
+      predited_label = model(text, offsets)
+      loss = criterion(predited_label, label)
+      total_acc += (predited_label.argmax(1) == label).sum().item()
+      total_count += label.size(0)
+  return total_acc / total_count
+
+
+#  TRAINING & EVALUATING
+# Hyperparameters
+EPOCHS = 10  # epoch
+LR = 5  # learning rate
+BATCH_SIZE = 64  # batch size for training
+
+criterion = torch.nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=LR)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.1)
+total_accu = None
+
+for epoch in range(1, EPOCHS + 1):
+  epoch_start_time = time.time()
+  train(datasets['train'])
+  accu_val = evaluate(datasets['test'])
+  if total_accu is not None and total_accu > accu_val:
+    scheduler.step()
+  else:
+    total_accu = accu_val
+  print('-' * 59)
+  print('| end of epoch {:3d} | time: {:5.2f}s | '
+        'valid accuracy {:8.3f} '.format(epoch,
+                                         time.time() - epoch_start_time,
+                                         accu_val))
+  print('-' * 59)

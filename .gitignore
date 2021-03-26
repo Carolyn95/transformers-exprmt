@@ -10,3 +10,4 @@ old_envr/
 test_ner/
 runs/
 glove_emb/
+.vector_cache/
