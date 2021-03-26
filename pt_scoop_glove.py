@@ -38,7 +38,8 @@ text_field = Field(sequential=True,
 label_field = Field(sequential=False, use_vocab=False, is_target=True)
 
 preprocessed_text = df['text'].apply(lambda x: text_field.preprocess(x))
-text_field.build_vocab(preprocessed_text, vectors='fasttext.simple.300d')
+# text_field.build_vocab(preprocessed_text, vectors='fasttext.simple.300d')
+text_field.build_vocab(preprocessed_text, vectors='glove.6B.50d')
 vocab = text_field.vocab
 
 ltoi = {l: i for i, l in enumerate(df['label'].unique())}
