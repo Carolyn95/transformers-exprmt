@@ -30,7 +30,7 @@ set_seed(20)
 # embedding = FastText('simple')
 embedding = GloVe(name='6B', dim=50)
 
-data_dir = './data/ssoe-data/'
+data_dir = './data/sats-data/'
 train_ = np.load(data_dir + 'train_sents.npy', allow_pickle=True)
 train_labels = np.load(data_dir + 'labels_train.npy', allow_pickle=True)
 eval_ = np.load(data_dir + 'eval_sents.npy', allow_pickle=True)
@@ -91,11 +91,14 @@ class MyModel(nn.Module):
     super().__init__()
     self.embedding = nn.Embedding(model_param.vocab_size,
                                   model_param.embedding_dim)
-    self.lin = nn.Linear(model_param.input_size * model_param.embedding_dim,
-                         model_param.target_dim)
+    # self.lin = nn.Linear(model_param.input_size * model_param.embedding_dim,
+    #                      model_param.target_dim)
+    self.lin = nn.Linear(model_param.embedding_dim, model_param.target_dim)
 
   def forward(self, x):
-    features = self.embedding(x).view(x.size()[0], -1)
+    # features = self.embedding(x).view(x.size()[0], -1)
+    features = self.embedding(x)
+    features = torch.mean(features, 1)
     features = F.relu(features)
     features = self.lin(features)
     return features
