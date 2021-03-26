@@ -1,4 +1,6 @@
 # torchtext==0.9.1
+# adapt from: https://towardsdatascience.com/deep-learning-for-nlp-with-pytorch-and-torchtext-4f92d69052f
+# colab aval: https://colab.research.google.com/github/ariepratama/python-playground/blob/master/dl-for-nlp-pytorch-torchtext.ipynb#scrollTo=i_aPDhlrUpyz
 import pdb
 import torch
 import torch.nn as nn
