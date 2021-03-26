@@ -13,13 +13,24 @@ from torchtext.vocab import FastText
 from torchtext.vocab import CharNGram
 from sklearn.metrics import accuracy_score
 from torchtext.vocab import GloVe
-
+import random
 import pandas as pd
 import numpy as np
+
+
+def set_seed(seed):
+  random.seed(seed)
+  np.random.seed(seed)
+  torch.manual_seed(seed)
+  if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)
+
+
+set_seed(20)
 # embedding = FastText('simple')
 embedding = GloVe(name='6B', dim=50)
 
-data_dir = './data/atfm-data/'
+data_dir = './data/ssoe-data/'
 train_ = np.load(data_dir + 'train_sents.npy', allow_pickle=True)
 train_labels = np.load(data_dir + 'labels_train.npy', allow_pickle=True)
 eval_ = np.load(data_dir + 'eval_sents.npy', allow_pickle=True)
