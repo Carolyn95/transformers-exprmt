@@ -75,12 +75,7 @@ class Banking77(datasets.GeneratorBasedBuilder):
                                  **kwargs)
 
   def _info(self):
-    return datasets.DatasetInfo(
-        description=_DESCRIPTION,
-        supervised_keys=None,
-        homepage=_HOMEPAGE,
-        citation=_CITATION,
-    )
+    return datasets.DatasetInfo()
 
   def _split_generators(self, dl_manager):
     data = dl_manager.download_and_extract({
@@ -109,14 +104,28 @@ model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 data_dir = 'data/banking77/banking_data'
 banking_data = Banking77().load(data_dir=data_dir)
-
+# paddding_max_length = 32
 train_datasets = banking_data['train']
+
+
+def encode(data):
+  return tokenizer(data['text'],
+                   truncation=True,
+                   padding='max_length',
+                   max_length=32)
+
+
+train_datasets = train_datasets.map(encode, batched=True)
+# pdb.set_trace()
 train_datasets = DataLoader(train_datasets,
                             batch_size=16,
                             shuffle=True,
                             drop_last=True,
                             num_workers=2).dataset
+
 dev_datasets = banking_data['test']
+dev_datasets = dev_datasets.map(encode, batched=True)
+
 dev_datasets = DataLoader(dev_datasets,
                           batch_size=16,
                           shuffle=False,
