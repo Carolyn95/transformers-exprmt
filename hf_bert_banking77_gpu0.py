@@ -58,24 +58,13 @@ set_seed(2021)
 
 class Banking77(datasets.GeneratorBasedBuilder):
 
-  @staticmethod
-  def load(data_dir=None, **kwargs):
-    src_file = Path(__file__)
-    if not data_dir:
-      data_dir = src_file.with_suffix('')
-    with open(Path(data_dir).joinpath('categories.json')) as fp:
-      features = datasets.Features({
-          'id': datasets.Value('string'),
-          'text': datasets.Value('string'),
-          'label': datasets.features.ClassLabel(names=json.load(fp))
-      })
-    return datasets.load_dataset(str(src_file.absolute()),
-                                 data_dir=data_dir,
-                                 features=features,
-                                 **kwargs)
-
   def _info(self):
-    return datasets.DatasetInfo()
+    return datasets.info.DatasetInfo(
+        description=_DESCRIPTION,
+        supervised_keys=None,
+        homepage=_HOMEPAGE,
+        citation=_CITATION,
+    )
 
   def _split_generators(self, dl_manager):
     data = dl_manager.download_and_extract({
@@ -95,6 +84,22 @@ class Banking77(datasets.GeneratorBasedBuilder):
     for i, eg in enumerate(samples):
       yield i, {'id': str(i), 'text': eg['text'], 'label': eg['category']}
 
+  @staticmethod
+  def load(data_dir=None, **kwargs):
+    src_file = Path(__file__)
+    if not data_dir:
+      data_dir = src_file.with_suffix('')
+    with open(Path(data_dir).joinpath('categories.json')) as fp:
+      features = datasets.Features({
+          'id': datasets.Value('string'),
+          'text': datasets.Value('string'),
+          'label': datasets.features.ClassLabel(names=json.load(fp))
+      })
+    return datasets.load_dataset(str(src_file.absolute()),
+                                 data_dir=data_dir,
+                                 features=features,
+                                 **kwargs)
+
 
 # "distilbert-base-uncased" | "distilbert-base-cased"
 # "bert-base-uncased" | "bert-base-cased"
@@ -103,8 +108,7 @@ model_checkpoint = "bert-base-uncased"
 model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 data_dir = 'data/banking77/banking_data'
-banking_data = Banking77().load(data_dir=data_dir)
-# paddding_max_length = 32
+banking_data = Banking77.load(data_dir=data_dir)
 train_datasets = banking_data['train']
 
 
@@ -135,9 +139,9 @@ dev_datasets = DataLoader(dev_datasets,
 label_list = train_datasets.features['label'].names
 model = AutoModelForSequenceClassification.from_pretrained(
     model_checkpoint, num_labels=len(label_list))
-datasets = {}
-datasets['train'] = train_datasets
-datasets['test'] = dev_datasets
+banking_datasets = {}
+banking_datasets['train'] = train_datasets
+banking_datasets['test'] = dev_datasets
 
 is_grad = 'grad_'
 # for name, param in model.named_parameters():
@@ -173,14 +177,14 @@ args = TrainingArguments(
 )  # model_parallel should use in conjunction with model.to('cuda')
 trainer = Trainer(model.to(device),
                   args,
-                  train_dataset=datasets['train'],
-                  eval_dataset=datasets['train'],
+                  train_dataset=banking_datasets['train'],
+                  eval_dataset=banking_datasets['train'],
                   tokenizer=tokenizer,
                   compute_metrics=compute_metrics)
 trainer.train()
 trainer.save_model(args.output_dir)
 
-predictions, labels, _ = trainer.predict(datasets['test'])
+predictions, labels, _ = trainer.predict(banking_datasets['test'])
 predictions = np.argmax(predictions, axis=1)
 results = accuracy_score(labels, predictions)
 print(results)
