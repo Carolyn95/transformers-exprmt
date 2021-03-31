@@ -19,6 +19,7 @@ from torch.utils.data import Dataset, DataLoader
 import csv
 import json
 from pathlib import Path
+from collections import Counter
 
 
 def set_seed(seed):
@@ -42,16 +43,28 @@ class Banking77(datasets.GeneratorBasedBuilder):
         split: Path(self.config.data_dir).joinpath(f'{split}.csv')
         for split in ['train', 'test']
     })
+    with open(data['train']) as fp:
+      all_train = [x for x in csv.DictReader(fp)]
+    with open(data['test']) as fp:
+      test = [x for x in csv.DictReader(fp)]
+    val_split = []
+    labels = [x['category'] for x in all_train]
+    for label, count in Counter(labels).items():
+      n = count // 5
+      val_split.extend([i for i, c in enumerate(labels) if c == label][:n])
+    train_split = [i for i in range(len(all_train)) if i not in val_split]
     return [
-        datasets.SplitGenerator(name=datasets.Split.TRAIN,
-                                gen_kwargs={'filepath': data['train']}),
+        datasets.SplitGenerator(
+            name=datasets.Split.TRAIN,
+            gen_kwargs={'samples': [all_train[i] for i in train_split]}),
+        datasets.SplitGenerator(
+            name=datasets.Split.VALIDATION,
+            gen_kwargs={'samples': [all_train[i] for i in val_split]}),
         datasets.SplitGenerator(name=datasets.Split.TEST,
-                                gen_kwargs={'filepath': data['test']})
+                                gen_kwargs={'samples': test})
     ]
 
-  def _generate_examples(self, filepath):
-    with open(filepath) as fp:
-      samples = [x for x in csv.DictReader(fp)]
+  def _generate_examples(self, samples):
     for i, eg in enumerate(samples):
       yield i, {'id': str(i), 'text': eg['text'], 'label': eg['category']}
 
@@ -97,6 +110,15 @@ train_datasets = DataLoader(train_datasets,
                             drop_last=True,
                             num_workers=2).dataset
 
+val_datasets = banking_data['validation']
+val_datasets = val_datasets.map(encode, batched=True)
+
+val_datasets = DataLoader(val_datasets,
+                          batch_size=16,
+                          shuffle=False,
+                          drop_last=True,
+                          num_workers=2).dataset
+
 dev_datasets = banking_data['test']
 dev_datasets = dev_datasets.map(encode, batched=True)
 
@@ -106,11 +128,12 @@ dev_datasets = DataLoader(dev_datasets,
                           drop_last=True,
                           num_workers=2).dataset
 
-label_list = train_datasets.features['label'].names
+label_list = banking_data['train'].features['label'].names
 model = AutoModelForSequenceClassification.from_pretrained(
     model_checkpoint, num_labels=len(label_list), output_hidden_states=True)
 banking_datasets = {}
 banking_datasets['train'] = train_datasets
+banking_datasets['val'] = val_datasets
 banking_datasets['test'] = dev_datasets
 
 is_grad = 'grad_'
@@ -123,7 +146,7 @@ from sklearn.metrics import accuracy_score
 
 def compute_metrics(pred):
   labels = pred.label_ids
-  preds = pred.predictions.argmax(-1)
+  # preds = pred.predictions.argmax(-1)
   preds = [x.argmax(-1) for x in pred.predictions[0]]
   acc = accuracy_score(labels, preds)
   return {
@@ -149,7 +172,7 @@ args = TrainingArguments(
 trainer = Trainer(model.to(device),
                   args,
                   train_dataset=banking_datasets['train'],
-                  eval_dataset=banking_datasets['train'],
+                  eval_dataset=banking_datasets['val'],
                   tokenizer=tokenizer,
                   compute_metrics=compute_metrics)
 trainer.train()
