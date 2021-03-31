@@ -20,6 +20,7 @@ import csv
 import json
 from pathlib import Path
 from collections import Counter
+from tqdm import tqdm
 
 
 def set_seed(seed):
@@ -94,39 +95,31 @@ tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 
 
 def encode(data):
-  return tokenizer(data['text'],
-                   truncation=True,
-                   padding='max_length',
-                   max_length=32)
+  return tokenizer(data['text'])
 
 
+tokenizer_batch_size = 16
 data_dir = 'data/banking77/banking_data'
 banking_data = Banking77.load(data_dir=data_dir)
 train_datasets = banking_data['train']
 train_datasets = train_datasets.map(encode, batched=True)
-train_datasets = DataLoader(train_datasets,
-                            batch_size=16,
-                            shuffle=True,
-                            drop_last=True,
-                            num_workers=2).dataset
+# train_datasets = DataLoader(train_datasets,
+#                             batch_size=tokenizer_batch_size,
+#                             shuffle=True,
+#                             drop_last=True,
+#                             num_workers=2).dataset
 
 val_datasets = banking_data['validation']
 val_datasets = val_datasets.map(encode, batched=True)
 
-val_datasets = DataLoader(val_datasets,
-                          batch_size=16,
-                          shuffle=False,
-                          drop_last=True,
-                          num_workers=2).dataset
+# val_datasets = DataLoader(val_datasets,
+#                           batch_size=tokenizer_batch_size,
+#                           shuffle=False,
+#                           drop_last=True,
+#                           num_workers=2).dataset
 
 dev_datasets = banking_data['test']
-dev_datasets = dev_datasets.map(encode, batched=True)
-
-dev_datasets = DataLoader(dev_datasets,
-                          batch_size=16,
-                          shuffle=False,
-                          drop_last=True,
-                          num_workers=2).dataset
+# dev_datasets = dev_datasets.map(encode, batched=True)
 
 label_list = banking_data['train'].features['label'].names
 model = AutoModelForSequenceClassification.from_pretrained(
@@ -154,7 +147,7 @@ def compute_metrics(pred):
   }
 
 
-batch_size = 32
+batch_size = 128
 exprmt_ds = 'banking77'
 traning_samples = len(train_datasets)
 output_dir = 'hf_' + is_grad + f'{model_name}' + f'_{exprmt_ds}' + f'_{traning_samples}'
@@ -164,10 +157,8 @@ args = TrainingArguments(
     evaluation_strategy='epoch',
     learning_rate=2e-5,
     per_device_train_batch_size=batch_size,
-    per_device_eval_batch_size=batch_size,
     num_train_epochs=10,
-    weight_decay=0.01,
-    model_parallel=True
+    weight_decay=0.01
 )  # model_parallel should use in conjunction with model.to('cuda')
 trainer = Trainer(model.to(device),
                   args,
@@ -178,8 +169,20 @@ trainer = Trainer(model.to(device),
 trainer.train()
 trainer.save_model(args.output_dir)
 
-predictions, labels, _ = trainer.predict(banking_datasets['test'])
-# predictions = np.argmax(predictions, axis=1)
-predictions = np.argmax(predictions[0], axis=1)
+predictions = []
+labels = []
+
+for i in range(0, len(banking_datasets['test']), tokenizer_batch_size):
+
+  ds_valid = banking_datasets['test'].select(
+      [j for j in range(i, i + tokenizer_batch_size)])
+  ds_valid = ds_valid.map(encode, batched=True)
+  batch_predictions, batch_labels, _ = trainer.predict(ds_valid)
+  batch_predictions = np.argmax(batch_predictions[0], axis=1)
+  batch_predictions = [p for p in batch_predictions]
+  batch_labels = [b for b in batch_labels]
+  predictions += batch_predictions
+  labels += batch_labels
+
 results = accuracy_score(labels, predictions)
 print(results)
