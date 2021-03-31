@@ -1,3 +1,5 @@
+# torch version, 1.8.1+cu102 manually install first (pip does not install CUDA-specific version)
+
 transformers==4.1.1
 pytorch-lightning==1.1.4
 datasets==1.1.3
