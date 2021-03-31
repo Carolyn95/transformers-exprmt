@@ -144,7 +144,7 @@ dev_datasets = DataLoader(dev_datasets,
 
 label_list = train_datasets.features['label'].names
 model = AutoModelForSequenceClassification.from_pretrained(
-    model_checkpoint, num_labels=len(label_list))
+    model_checkpoint, num_labels=len(label_list), output_hidden_states=True)
 clinc_datasets = {}
 clinc_datasets['train'] = train_datasets
 clinc_datasets['val'] = val_datasets
@@ -160,7 +160,9 @@ from sklearn.metrics import accuracy_score
 
 def compute_metrics(pred):
   labels = pred.label_ids
-  preds = pred.predictions.argmax(-1)
+  # preds = pred.predictions.argmax(-1)
+  preds = [x.argmax(-1) for x in pred.predictions[0]
+          ]  # output_hidden_states=True
   acc = accuracy_score(labels, preds)
   return {
       'accuracy': acc,
@@ -192,6 +194,7 @@ trainer.train()
 trainer.save_model(args.output_dir)
 
 predictions, labels, _ = trainer.predict(clinc_datasets['test'])
-predictions = np.argmax(predictions, axis=1)
+# predictions = np.argmax(predictions, axis=1)
+predictions = np.argmax(predictions[0], axis=1)
 results = accuracy_score(labels, predictions)
 print(results)

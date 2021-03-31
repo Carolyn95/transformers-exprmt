@@ -5,7 +5,7 @@
 """
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 import pdb
 import datasets
 import random
@@ -78,9 +78,6 @@ class Banking77(datasets.GeneratorBasedBuilder):
 model_checkpoint = "bert-base-uncased"
 model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-data_dir = 'data/banking77/banking_data'
-banking_data = Banking77.load(data_dir=data_dir)
-train_datasets = banking_data['train']
 
 
 def encode(data):
@@ -90,8 +87,10 @@ def encode(data):
                    max_length=32)
 
 
+data_dir = 'data/banking77/banking_data'
+banking_data = Banking77.load(data_dir=data_dir)
+train_datasets = banking_data['train']
 train_datasets = train_datasets.map(encode, batched=True)
-# pdb.set_trace()
 train_datasets = DataLoader(train_datasets,
                             batch_size=16,
                             shuffle=True,
@@ -109,7 +108,7 @@ dev_datasets = DataLoader(dev_datasets,
 
 label_list = train_datasets.features['label'].names
 model = AutoModelForSequenceClassification.from_pretrained(
-    model_checkpoint, num_labels=len(label_list))
+    model_checkpoint, num_labels=len(label_list), output_hidden_states=True)
 banking_datasets = {}
 banking_datasets['train'] = train_datasets
 banking_datasets['test'] = dev_datasets
@@ -125,6 +124,7 @@ from sklearn.metrics import accuracy_score
 def compute_metrics(pred):
   labels = pred.label_ids
   preds = pred.predictions.argmax(-1)
+  preds = [x.argmax(-1) for x in pred.predictions[0]]
   acc = accuracy_score(labels, preds)
   return {
       'accuracy': acc,
@@ -156,6 +156,7 @@ trainer.train()
 trainer.save_model(args.output_dir)
 
 predictions, labels, _ = trainer.predict(banking_datasets['test'])
-predictions = np.argmax(predictions, axis=1)
+# predictions = np.argmax(predictions, axis=1)
+predictions = np.argmax(predictions[0], axis=1)
 results = accuracy_score(labels, predictions)
 print(results)
