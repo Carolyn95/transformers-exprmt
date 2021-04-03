@@ -20,6 +20,7 @@ import csv
 import json
 from pathlib import Path
 
+
 def set_seed(seed):
   random.seed(seed)
   np.random.seed(seed)
@@ -73,99 +74,95 @@ class Clinc150(datasets.GeneratorBasedBuilder):
       yield i, {'id': str(i), 'text': eg['text'], 'label': eg['category']}
 
 
-# "distilbert-base-uncased" | "distilbert-base-cased" | "bert-base-uncased" | "bert-base-cased"
+if __name__ == '__main__':
+  # "distilbert-base-uncased" | "distilbert-base-cased" | "bert-base-uncased" | "bert-base-cased"
 
-model_checkpoint = "bert-base-uncased"
-model_name = "bert-base-uncased"
-tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+  model_checkpoint = "bert-base-uncased"
+  model_name = "bert-base-uncased"
+  tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 
+  def encode(data):
+    return tokenizer(data['text'])
 
-def encode(data):
-  return tokenizer(data['text'])
+  data_dir = 'data/clinc150/'
+  clinc_data = Clinc150.load(data_dir=data_dir)
+  train_datasets = clinc_data['train']
+  train_datasets = train_datasets.map(encode, batched=True)
+  train_datasets = DataLoader(train_datasets,
+                              batch_size=16,
+                              shuffle=True,
+                              drop_last=True,
+                              num_workers=2).dataset
 
+  val_datasets = clinc_data['validation']
+  val_datasets = val_datasets.map(encode, batched=True)
 
-data_dir = 'data/clinc150/'
-clinc_data = Clinc150.load(data_dir=data_dir)
-train_datasets = clinc_data['train']
-pdb.set_trace()
-train_datasets = train_datasets.map(encode, batched=True)
-train_datasets = DataLoader(train_datasets,
+  val_datasets = DataLoader(val_datasets,
                             batch_size=16,
-                            shuffle=True,
+                            shuffle=False,
                             drop_last=True,
                             num_workers=2).dataset
 
-val_datasets = clinc_data['validation']
-val_datasets = val_datasets.map(encode, batched=True)
+  dev_datasets = clinc_data['test']
+  dev_datasets = dev_datasets.map(encode, batched=True)
 
-val_datasets = DataLoader(val_datasets,
-                          batch_size=16,
-                          shuffle=False,
-                          drop_last=True,
-                          num_workers=2).dataset
+  dev_datasets = DataLoader(dev_datasets,
+                            batch_size=16,
+                            shuffle=False,
+                            drop_last=True,
+                            num_workers=2).dataset
 
-dev_datasets = clinc_data['test']
-dev_datasets = dev_datasets.map(encode, batched=True)
+  label_list = train_datasets.features['label'].names
+  model = AutoModelForSequenceClassification.from_pretrained(
+      model_checkpoint, num_labels=len(label_list), output_hidden_states=True)
+  clinc_datasets = {}
+  clinc_datasets['train'] = train_datasets
+  clinc_datasets['val'] = val_datasets
+  clinc_datasets['test'] = dev_datasets
 
-dev_datasets = DataLoader(dev_datasets,
-                          batch_size=16,
-                          shuffle=False,
-                          drop_last=True,
-                          num_workers=2).dataset
+  is_grad = 'grad_'
+  # for name, param in model.named_parameters():
+  #   if 'classifier' not in name:  # classifier layer
+  #     param.requires_grad = False
 
-label_list = train_datasets.features['label'].names
-model = AutoModelForSequenceClassification.from_pretrained(
-    model_checkpoint, num_labels=len(label_list), output_hidden_states=True)
-clinc_datasets = {}
-clinc_datasets['train'] = train_datasets
-clinc_datasets['val'] = val_datasets
-clinc_datasets['test'] = dev_datasets
+  from sklearn.metrics import accuracy_score
 
-is_grad = 'grad_'
-# for name, param in model.named_parameters():
-#   if 'classifier' not in name:  # classifier layer
-#     param.requires_grad = False
+  def compute_metrics(pred):
+    labels = pred.label_ids
+    # preds = pred.predictions.argmax(-1)
+    preds = [x.argmax(-1) for x in pred.predictions[0]
+            ]  # output_hidden_states=True
+    acc = accuracy_score(labels, preds)
+    return {
+        'accuracy': acc,
+    }
 
-from sklearn.metrics import accuracy_score
+  batch_size = 32
+  exprmt_ds = 'clinc150'
+  traning_samples = len(train_datasets)
+  output_dir = 'hf_' + is_grad + f'{model_name}' + f'_{exprmt_ds}' + f'_{traning_samples}'
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  args = TrainingArguments(
+      output_dir=output_dir,
+      evaluation_strategy='epoch',
+      learning_rate=2e-5,
+      per_device_train_batch_size=batch_size,
+      per_device_eval_batch_size=batch_size,
+      num_train_epochs=10,
+      weight_decay=0.01,
+      model_parallel=True
+  )  # model_parallel should use in conjunction with model.to('cuda')
+  trainer = Trainer(model.to(device),
+                    args,
+                    train_dataset=clinc_datasets['train'],
+                    eval_dataset=clinc_datasets['val'],
+                    tokenizer=tokenizer,
+                    compute_metrics=compute_metrics)
+  trainer.train()
+  trainer.save_model(args.output_dir)
 
-
-def compute_metrics(pred):
-  labels = pred.label_ids
-  # preds = pred.predictions.argmax(-1)
-  preds = [x.argmax(-1) for x in pred.predictions[0]
-          ]  # output_hidden_states=True
-  acc = accuracy_score(labels, preds)
-  return {
-      'accuracy': acc,
-  }
-
-
-batch_size = 32
-exprmt_ds = 'clinc150'
-traning_samples = len(train_datasets)
-output_dir = 'hf_' + is_grad + f'{model_name}' + f'_{exprmt_ds}' + f'_{traning_samples}'
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-args = TrainingArguments(
-    output_dir=output_dir,
-    evaluation_strategy='epoch',
-    learning_rate=2e-5,
-    per_device_train_batch_size=batch_size,
-    per_device_eval_batch_size=batch_size,
-    num_train_epochs=10,
-    weight_decay=0.01,
-    model_parallel=True
-)  # model_parallel should use in conjunction with model.to('cuda')
-trainer = Trainer(model.to(device),
-                  args,
-                  train_dataset=clinc_datasets['train'],
-                  eval_dataset=clinc_datasets['val'],
-                  tokenizer=tokenizer,
-                  compute_metrics=compute_metrics)
-trainer.train()
-trainer.save_model(args.output_dir)
-
-predictions, labels, _ = trainer.predict(clinc_datasets['test'])
-# predictions = np.argmax(predictions, axis=1)
-predictions = np.argmax(predictions[0], axis=1)
-results = accuracy_score(labels, predictions)
-print(results)
+  predictions, labels, _ = trainer.predict(clinc_datasets['test'])
+  # predictions = np.argmax(predictions, axis=1)
+  predictions = np.argmax(predictions[0], axis=1)
+  results = accuracy_score(labels, predictions)
+  print('ACCURACY RESULT: ', results)
