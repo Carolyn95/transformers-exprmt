@@ -20,31 +20,6 @@ import csv
 import json
 from pathlib import Path
 
-# _CITATION = """
-# @inproceedings{Casanueva2020,
-# author = {I{\~{n}}igo Casanueva and Tadas Temcinas and Daniela Gerz and Matthew
-#           Henderson and Ivan Vulic},
-# title = {Efficient Intent Detection with Dual Sentence Encoders},
-# year = {2020},
-# month = {mar},
-# url = {https://arxiv.org/abs/2003.04807},
-# booktitle = {Proceedings of the 2nd Workshop on NLP for ConvAI - ACL 2020}
-# }
-# """
-# _DESCRIPTION = """
-# Therefore, to complement the recent effort on data collection for intent
-# detection, we propose a new single-domain dataset: it provides a very
-# fine-grained set of intents in a banking domain, not present in HWU 64 and
-# CLINC 150. The new BANKING 77 dataset comprises 13,083 customer service queries
-# labeled with 77 intents. Its focus on fine-grained single-domain intent
-# detection makes it complementary to the two other datasets: we believe that any
-# comprehensive intent detection evaluation should involve both coarser-grained
-# multi-domain datasets such as HWU 64 and CLINC 150, and a fine-grained
-# single-domain dataset such as BANKING 77.
-# """
-# _HOMEPAGE = 'https://github.com/PolyAI-LDN/task-specific-datasets'
-
-
 def set_seed(seed):
   random.seed(seed)
   np.random.seed(seed)
@@ -92,7 +67,6 @@ class Clinc150(datasets.GeneratorBasedBuilder):
     ]
 
   def _generate_examples(self, filepath):
-    """Yields examples."""
     with open(filepath) as fp:
       samples = [x for x in csv.DictReader(fp)]
     for i, eg in enumerate(samples):
@@ -107,16 +81,13 @@ tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 
 
 def encode(data):
-  return tokenizer(data['text'],
-                   truncation=True,
-                   padding='max_length',
-                   max_length=32)
+  return tokenizer(data['text'])
 
 
 data_dir = 'data/clinc150/'
 clinc_data = Clinc150.load(data_dir=data_dir)
 train_datasets = clinc_data['train']
-
+pdb.set_trace()
 train_datasets = train_datasets.map(encode, batched=True)
 train_datasets = DataLoader(train_datasets,
                             batch_size=16,
