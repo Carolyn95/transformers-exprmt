@@ -148,7 +148,7 @@ if __name__ == '__main__':
         'accuracy': acc,
     }
 
-  batch_size = 32
+  batch_size = 128
   exprmt_ds = 'banking77'
   traning_samples = len(train_datasets)
   output_dir = 'hf_' + is_grad + f'{model_name}' + f'_{exprmt_ds}' + f'_{traning_samples}'
@@ -156,7 +156,7 @@ if __name__ == '__main__':
   args = TrainingArguments(
       output_dir=output_dir,
       evaluation_strategy='epoch',
-      learning_rate=1e-4,
+      learning_rate=2e-5,
       per_device_train_batch_size=batch_size,
       num_train_epochs=10,
       weight_decay=0.01,
