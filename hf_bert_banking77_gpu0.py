@@ -100,7 +100,6 @@ if __name__ == '__main__':
 
   tokenizer_batch_size = 16
   data_dir = 'data/banking77/banking_data'
-  # pdb.set_trace()
   banking_data = Banking77.load(data_dir)
 
   train_datasets = banking_data['train']
@@ -125,7 +124,7 @@ if __name__ == '__main__':
 
   label_list = banking_data['train'].features['label'].names
   model = AutoModelForSequenceClassification.from_pretrained(
-      model_checkpoint, num_labels=len(label_list), output_hidden_states=True)
+      model_checkpoint, num_labels=len(label_list), output_hidden_states=False)
   banking_datasets = {}
   banking_datasets['train'] = train_datasets
   banking_datasets['val'] = val_datasets
@@ -140,8 +139,10 @@ if __name__ == '__main__':
 
   def compute_metrics(pred):
     labels = pred.label_ids
-    # preds = pred.predictions.argmax(-1)
-    preds = [x.argmax(-1) for x in pred.predictions[0]]
+    # output_hidden_states=False
+    preds = pred.predictions.argmax(-1)
+    # output_hidden_states=True
+    # preds = [x.argmax(-1) for x in pred.predictions[0]]
     acc = accuracy_score(labels, preds)
     return {
         'accuracy': acc,
@@ -184,14 +185,11 @@ if __name__ == '__main__':
 
   with torch.no_grad():
     for ds_valid in banking_datasets['test']:
-      # ds_valid = banking_datasets['test'].select(
-      #     [j for j in range(i, i + tokenizer_batch_size)])
-      # ds_valid = ds_valid.dataset.map(encode, batched=True)
-      # print(len(ds_valid), [len(ttt['input_ids']) for ttt in ds_valid])
-
-      # pdb.set_trace()
       batch_predictions, batch_labels, _ = trainer.predict(ds_valid)
-      batch_predictions = np.argmax(batch_predictions[0], axis=1)
+      # output_hidden_states=True
+      # batch_predictions = np.argmax(batch_predictions[0], axis=1)
+      # output_hidden_states=False
+      batch_predictions = batch_predictions.argmax(-1)
       batch_predictions = [p for p in batch_predictions]
       batch_labels = [b for b in batch_labels]
       predictions += batch_predictions

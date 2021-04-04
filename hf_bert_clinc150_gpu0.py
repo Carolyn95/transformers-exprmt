@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
   label_list = train_datasets.features['label'].names
   model = AutoModelForSequenceClassification.from_pretrained(
-      model_checkpoint, num_labels=len(label_list), output_hidden_states=True)
+      model_checkpoint, num_labels=len(label_list), output_hidden_states=False)
   clinc_datasets = {}
   clinc_datasets['train'] = train_datasets
   clinc_datasets['val'] = val_datasets
@@ -129,9 +129,10 @@ if __name__ == '__main__':
 
   def compute_metrics(pred):
     labels = pred.label_ids
-    # preds = pred.predictions.argmax(-1)
-    preds = [x.argmax(-1) for x in pred.predictions[0]
-            ]  # output_hidden_states=True
+    # output_hidden_states=False
+    preds = pred.predictions.argmax(-1)
+    # output_hidden_states=True
+    # preds = [x.argmax(-1) for x in pred.predictions[0]]
     acc = accuracy_score(labels, preds)
     return {
         'accuracy': acc,
@@ -162,7 +163,9 @@ if __name__ == '__main__':
   trainer.save_model(args.output_dir)
 
   predictions, labels, _ = trainer.predict(clinc_datasets['test'])
-  # predictions = np.argmax(predictions, axis=1)
-  predictions = np.argmax(predictions[0], axis=1)
+  # output_hidden_states=False
+  predictions = predictions.argmax(-1)  # same as np.argmax(predictions, axis=1)
+  # output_hidden_states=True
+  # predictions = np.argmax(predictions[0], axis=1)
   results = accuracy_score(labels, predictions)
   print('ACCURACY RESULT: ', results)
