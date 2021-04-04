@@ -138,7 +138,7 @@ if __name__ == '__main__':
         'accuracy': acc,
     }
 
-  batch_size = 128
+  batch_size = 32
   exprmt_ds = 'clinc150'
   traning_samples = len(train_datasets)
   output_dir = 'hf_' + is_grad + f'{model_name}' + f'_{exprmt_ds}' + f'_{traning_samples}'
