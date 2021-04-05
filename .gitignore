@@ -11,3 +11,4 @@ test_ner/
 runs/
 glove_emb/
 .vector_cache/
+*lock
