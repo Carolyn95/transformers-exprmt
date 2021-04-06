@@ -202,20 +202,26 @@ if __name__ == '__main__':
       weight_decay=0.01,
       eval_accumulation_steps=16
   )  # model_parallel should use in conjunction with model.to('cuda')
-  mlp_optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-  # mlp_scheduler=transformers.get_polynomial_decay_schedule_with_warmup(optimizer=mlp_optimizer, num_warmup_steps=2000, num_training_steps=60000, power=1.0)
-  mlp_scheduler = transformers.get_linear_schedule_with_warmup(
-      optimizer=mlp_optimizer,
-      num_warmup_steps=50,
-      num_training_steps=args.num_train_epochs)
-  optimizers = (mlp_optimizer, mlp_scheduler)
+
+  # ------------ Train with transformer trainer
+  ## --------- train with customised optimizer and scheduler
+  # mlp_optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+  # mlp_scheduler = transformers.get_polynomial_decay_schedule_with_warmup(
+  #     optimizer=mlp_optimizer,
+  #     num_warmup_steps=30,
+  #     num_training_steps=args.num_train_epochs,
+  #     power=1.0)
+  # mlp_scheduler = transformers.get_linear_schedule_with_warmup(
+  #     optimizer=mlp_optimizer,
+  #     num_warmup_steps=50,
+  #     num_training_steps=args.num_train_epochs)
+  # optimizers = (mlp_optimizer, mlp_scheduler)
   trainer = Trainer(model.to(device),
                     args,
                     train_dataset=banking_datasets['train'],
                     eval_dataset=banking_datasets['val'],
                     tokenizer=tokenizer,
-                    compute_metrics=compute_metrics,
-                    optimizers=optimizers)
+                    compute_metrics=compute_metrics)  #,optimizers=optimizers
   trainer.train()
   trainer.save_model(args.output_dir)
 
