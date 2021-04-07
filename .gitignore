@@ -5,6 +5,7 @@ apex/
 __MACOSX/
 __pycache__/
 environments/
+models/
 lightning_logs/
 old_envr/
 test_ner/
