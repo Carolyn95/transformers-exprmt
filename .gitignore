@@ -4,7 +4,7 @@ apex/
 .vscode/
 __MACOSX/
 __pycache__/
-flex_envr/
+environments/
 lightning_logs/
 old_envr/
 test_ner/
