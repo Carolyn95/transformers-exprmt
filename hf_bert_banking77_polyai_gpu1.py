@@ -1,4 +1,5 @@
 """
+  TODO: implement same modeling architecture as PolyAI
   20210404
   banking 77
   PolyAI MLP design:
