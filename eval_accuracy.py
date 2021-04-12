@@ -14,7 +14,7 @@ def eval_accuracy(logits: np.ndarray,
   predictions = np.argmax(preds, axis=1)
   result = {
       'accuracy':
-          accuracy_score(labels_ids, predictions),
+          accuracy_score(label_ids, predictions),
       'report':
           classification_report(label_ids,
                                 predictions,
