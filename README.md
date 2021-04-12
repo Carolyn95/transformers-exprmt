@@ -24,3 +24,5 @@ store all test cases / unit tests
     * ablation or not
 * output path
     * containing name, training params, easier for tracking training
+* command to trigger training
+`python train.py --out_dir=testtest --batch=128 --lr=1e-4 --epochs=5 bert clinc`
