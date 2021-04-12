@@ -7,14 +7,14 @@ from datasets.dataset_dict import DatasetDict
 def tokenize_data(tokenizer, data, lowercase=False):
   """Add 'input_ids' field to dataset. 
 
-     Args:
-      tokenizer: instance of tokenizer
-      data: instance of Dataset or DatasetDict, containing text('String') and label('integer')
-      lowercase: whether to lowercase text or not before tokenization
-      
-     Returns:
-      Same container as data with additional fields 'input_ids' and optinally, 
-      'token_type_ids', 'attention_mask'
+  Args:
+     tokenizer: instance of tokenizer
+     data: instance of Dataset or DatasetDict, containing text('String') and label('integer')
+     lowercase: whether to lowercase text or not before tokenization
+  
+  Returns:
+     Same container as data with additional fields 'input_ids' and optinally, 
+     'token_type_ids', 'attention_mask'
   """
 
   def tokenize(examples):
