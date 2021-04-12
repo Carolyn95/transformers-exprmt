@@ -82,7 +82,7 @@ class SentenceClassifier():
                       model=AutoModelForSequenceClassification.from_pretrained(
                           self.model_name_or_path,
                           num_labels=len(self.classes)),
-                      compute_metric=get_compute_metrics(self.classes),
+                      compute_metrics=get_compute_metrics(self.classes),
                       train_dataset=train_dataset,
                       eval_dataset=eval_dataset)
     output_dir = Path(self.args.output_dir)
@@ -115,7 +115,7 @@ class SentenceClassifier():
       writer.write(f'{metrics["eval_report"]}\n')
       for key in ['accuracy', 'loss']:
         result = metrics[f'eval_{key}']
-        writer.wirte(f'{key} = {result}\n')
+        writer.write(f'{key} = {result}\n')
     if save_predictions:
       with open(output_dir.joinpath('test_predictions.txt'), 'w') as writer:
         writer.write(' '.join(metrics['eval_predictions']) + '\n')
