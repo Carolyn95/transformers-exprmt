@@ -50,7 +50,7 @@ class ClincAll(datasets.GeneratorBasedBuilder):
   """
 
   @staticmethod
-  def load(data_dir=None, **kwargs):
+  def load(data_dir='data/clinc150', **kwargs):
     """Returns DataDict."""
     src_file = Path(__file__)  # get directory of this src file
     if not data_dir:
@@ -96,4 +96,4 @@ class ClincAll(datasets.GeneratorBasedBuilder):
       samples = [x for x in csv.DictReader(fp)]
     for i, eg in enumerate(samples):
       # yield example should match dataset features as defined
-      yield i, {id: str(i), 'text': eg['text'], 'label': eg['category']}
+      yield i, {'id': str(i), 'text': eg['text'], 'label': eg['category']}
