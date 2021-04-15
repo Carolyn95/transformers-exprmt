@@ -13,21 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """CLINC150 dataset for Intent Detection. 
-   Please visit PolyAI github page to obtain data and authorization. 
-   Philosophy:
-      REFERENCE: https://huggingface.co/docs/datasets/_images/datasets_doc.jpg
-      Create a new class inherits `datasets.GeneratorBasedBuilder` class.
-      This sub-class needs to override 3 methods:
-      {
-        `_info`: descriptive information of the dataset, including citation, etc.
-                 You could define features used in the dataset here also, 
-                 features is an object of `datasets.Features`
-
-        `_split_generator`: returns generator of each split of the dataset
-
-        `_generate_examples`: yield dataset example in each split consuming by DatasetLoader
-      }
-      
+   Please visit PolyAI github page to obtain data and authorization.     
 """
 
 import csv
@@ -44,7 +30,7 @@ _HOMEPAGE = """HOMEPAGE IF ANY"""
 
 
 class ClincAll(datasets.GeneratorBasedBuilder):
-  """Clinc150 dataset from its home page comes with 'categories.json', 'train.csv', 'val.csv', 'test.csv'
+  """Clinc150 dataset from its homepage comes with 'categories.json', 'train.csv', 'val.csv', 'test.csv'
      categories.json contains labels of the dataset
      test.csv, val.csv, train.csv are the three splits of this dataset
   """

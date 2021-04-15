@@ -15,7 +15,6 @@
 # limitations under the License.
 """BANKING 77 dataset used by PolyAI for Intent Detection."""
 
-from collections import Counter
 import csv
 import json
 from pathlib import Path
@@ -94,31 +93,20 @@ class Banking77(datasets.GeneratorBasedBuilder):
     """Returns SplitGenerators."""
     data = dl_manager.download_and_extract({
         split: Path(self.config.data_dir).joinpath(f'{split}.csv')
-        for split in ['train', 'test']
+        for split in ['train', 'val', 'test']
     })
-    with open(data['train']) as fp:
-      all_train = [x for x in csv.DictReader(fp)]
-    with open(data['test']) as fp:
-      test = [x for x in csv.DictReader(fp)]
-    # Extract balanced validation split from training data
-    val_split = []
-    labels = [x['category'] for x in all_train]
-    for label, count in Counter(labels).items():
-      n = count // 5
-      val_split.extend([i for i, c in enumerate(labels) if c == label][:n])
-    train_split = [i for i in range(len(all_train)) if i not in val_split]
     return [
-        datasets.SplitGenerator(
-            name=datasets.Split.TRAIN,
-            gen_kwargs={'samples': [all_train[i] for i in train_split]}),
-        datasets.SplitGenerator(
-            name=datasets.Split.VALIDATION,
-            gen_kwargs={'samples': [all_train[i] for i in val_split]}),
+        datasets.SplitGenerator(name=datasets.Split.TRAIN,
+                                gen_kwargs={'filepath': data['train']}),
+        datasets.SplitGenerator(name=datasets.Split.VALIDATION,
+                                gen_kwargs={'filepath': data['val']}),
         datasets.SplitGenerator(name=datasets.Split.TEST,
-                                gen_kwargs={'samples': test})
+                                gen_kwargs={'filepath': data['test']})
     ]
 
-  def _generate_examples(self, samples):
+  def _generate_examples(self, filepath):
     """Yields examples."""
+    with open(filepath) as fp:
+      samples = [x for x in csv.DictReader(fp)]
     for i, eg in enumerate(samples):
       yield i, {'id': str(i), 'text': eg['text'], 'label': eg['category']}
