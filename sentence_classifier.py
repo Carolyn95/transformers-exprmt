@@ -77,6 +77,10 @@ class SentenceClassifier():
       train_dataset = self.data['train']
     if not eval_dataset:
       eval_dataset = self.data['validation']
+    # Shuffling training set and evaluation set with fixed seed
+    train_dataset = train_dataset.shuffle(seed=15)
+    eval_dataset = eval_dataset.shuffle(seed=15)
+
     trainer = Trainer(args=self.args,
                       tokenizer=self.tokenizer,
                       model=AutoModelForSequenceClassification.from_pretrained(
