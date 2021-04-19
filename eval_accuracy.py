@@ -7,7 +7,8 @@ def eval_accuracy(logits: np.ndarray,
                   label_ids: np.ndarray,
                   classes: list,
                   save_predictions=False) -> dict:
-  """According to transformers.Trainer, this method must taka a :class:`~transformers.EvalPrediction` and return a dictionary string to metric values."""
+  """According to transformers.Trainer, this method must taka a :class:`~transformers.EvalPrediction` 
+     and return a dictionary string to metric values."""
   preds = logits[0] if isinstance(
       logits, tuple
   ) else logits  # take care of whether `output_hidden_states` or not in one line
