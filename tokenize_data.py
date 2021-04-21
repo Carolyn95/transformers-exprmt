@@ -19,9 +19,9 @@ def tokenize_data(tokenizer, data, lowercase=False):
 
   def tokenize(examples):
     if lowercase:
-      text = [eg.lower() for eg in examples['text']]
+      text = [eg.lower() for eg in examples['token']]
     else:
-      text = examples['text']
+      text = examples['token']
     return tokenizer(text)
 
   # Number of processes is half of CPUs or size of smallest subsets
