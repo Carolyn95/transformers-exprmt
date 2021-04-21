@@ -1,11 +1,10 @@
 """Model training script."""
-# from dataset_loaders.bankingAll import BankingAll
+from dataset_loaders.bankingAll import BankingAll
 from dataset_loaders.clincAll import ClincAll
 from sentence_classifier import SentenceClassifier
 import pdb
 
-# DATASETS = {'bank': BankingAll, 'clinc': ClincAll}
-DATASETS = {'clinc': ClincAll}
+DATASETS = {'bank': BankingAll, 'clinc': ClincAll}
 
 if __name__ == '__main__':
   import argparse
