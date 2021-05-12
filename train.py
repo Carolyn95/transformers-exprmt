@@ -2,7 +2,7 @@
 # from dataset_loaders.bankingAll import BankingAll
 # from dataset_loaders.clincAll import ClincAll
 from dataset_loaders.conll03 import Conll03
-from sentence_classifier import SentenceClassifier
+from token_classifier import TokenClassifier
 import pdb
 
 DATASETS = {'conll': Conll03}
@@ -27,8 +27,8 @@ if __name__ == '__main__':
   parser.add_argument('--epochs', default=10, help='Training epochs')
   args = parser.parse_args()
   # Run
-  model = SentenceClassifier.create(args.model, DATASETS[args.dataset].load(),
-                                    int(args.batch))
+  model = TokenClassifier.create(args.model, DATASETS[args.dataset].load(),
+                                 int(args.batch))
   if args.out_dir:
     model.args.output_dir = args.out_dir
   else:

@@ -1,7 +1,7 @@
 """Model for sentence classification."""
 from pathlib import Path
 from datasets import DatasetDict
-from transformers import (AutoTokenizer, AutoModelForSequenceClassification,
+from transformers import (AutoTokenizer, AutoModelForTokenClassification,
                           set_seed, TrainingArguments, Trainer)
 from eval_accuracy import get_compute_metrics
 from tokenize_data import tokenize_data
@@ -22,8 +22,8 @@ PRETRAINED = {
 }
 
 
-class SentenceClassifier():
-  """Sentence classification model."""
+class TokenClassifier():
+  """Token classification model."""
 
   @staticmethod
   def create(model_name_or_path: str,
@@ -52,15 +52,15 @@ class SentenceClassifier():
     if model_name_or_path in PRETRAINED:
       model_name_or_path = PRETRAINED[model_name_or_path]
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, use_fast=True)
-    return SentenceClassifier(args, model_name_or_path, tokenizer,
-                              tokenize_data(tokenizer, dataset))
+    return TokenClassifier(args, model_name_or_path, tokenizer,
+                           tokenize_data(tokenizer, dataset))
 
   def __init__(self, args, model_name_or_path, tokenizer, data):
     self.args = args
     self.model_name_or_path = model_name_or_path
     self.tokenizer = tokenizer
     self.data = data
-    self.classes = data['train'].features['label'].names
+    self.classes = data['train'].features['ner_tag'].names
 
   def train(self, train_dataset=None, eval_dataset=None, test_dataset=None):
     """Runs training, and evaluation if test dataset provided.
@@ -83,7 +83,7 @@ class SentenceClassifier():
 
     trainer = Trainer(args=self.args,
                       tokenizer=self.tokenizer,
-                      model=AutoModelForSequenceClassification.from_pretrained(
+                      model=AutoModelForTokenClassification.from_pretrained(
                           self.model_name_or_path,
                           num_labels=len(self.classes)),
                       compute_metrics=get_compute_metrics(self.classes),
@@ -108,11 +108,10 @@ class SentenceClassifier():
     """
     output_dir = Path(self.args.output_dir)
     if not trainer:
-      trainer = Trainer(
-          model=AutoModelForSequenceClassification.from_pretrained(
-              self.model_name_or_path, num_labels=len(self.classes)),
-          compute_metrics=get_compute_metrics(
-              self.classes, save_predictions=save_predictions))
+      trainer = Trainer(model=AutoModelForTokenClassification.from_pretrained(
+          self.model_name_or_path, num_labels=len(self.classes)),
+                        compute_metrics=get_compute_metrics(
+                            self.classes, save_predictions=save_predictions))
     metrics = trainer.predict(test_dataset)[-1]
     print(f'\naccuracy = {metrics["eval_accuracy"]:.3f}')
     with open(output_dir.joinpath(f'test_resutls{suffix}.txt'), 'w') as writer:
